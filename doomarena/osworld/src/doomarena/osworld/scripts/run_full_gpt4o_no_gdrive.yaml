@@ -14,10 +14,10 @@ model: gpt-4o
 provider_name: docker
 screen_width: 1920
 screen_height: 956
-test_all_meta_path: doomarena/osworld/src/doomarena/osworld/scripts/test_tiny.json
-test_config_base_dir: ../OSWorld/evaluation_examples  # assumes Osworld is cloned in the parent directory
-max_steps: 2
-result_dir: ./click_results
+test_all_meta_path: doomarena/osworld/src/doomarena/osworld/scripts/test_all_no_gdrive.json
+test_config_base_dir: ../OSWorld/evaluation_examples
+max_steps: 15
+result_dir: ./click_results_full_no_gdrive
 enable_protected_monitor: true
 protected_resources: ["click"]
 protected_monitor_use_regex: false

@@ -170,6 +170,10 @@ cython_debug/
 
 # Results
 results/
+click_results/
+docker_vm_data/
+protected_resources_full_rerun_20260302/
+protected_resources_configed_test _results/
 data/attack_attempts.db
 security-dashboard/node_modules/
 security-dashboard/public/visualizations/

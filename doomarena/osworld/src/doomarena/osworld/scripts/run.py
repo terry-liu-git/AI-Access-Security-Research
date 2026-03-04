@@ -27,6 +27,8 @@ from doomarena.core.attacks import get_attacks
 from doomarena.osworld import lib_run_single
 from doomarena.osworld.mm_agents.agent import PromptAgent
 from desktop_env.desktop_env import DesktopEnv
+from doomarena.osworld.protected_monitor import ProtectedResourceMonitor
+
 
 #  Logger Configs {{{ #
 logger = logging.getLogger()
@@ -112,6 +114,15 @@ def config():
         "result_dir": "./results",
         "attack_gateway": None,
         "save_results": True,
+        "enable_protected_monitor": False,
+        "protected_resources": [],
+        "protected_monitor_use_regex": False,
+        "protected_monitor_case_sensitive": False,
+        "protected_monitor_regex_fullmatch": True,
+        "protected_monitor_regex_anchor_patterns": True,
+        "protected_monitor_log_unmatched_steps": False,
+        "protected_monitor_filename": "protected_monitor.jsonl",
+        "protected_monitor_from_example_policy": True,
     }
 
     # Apply defaults
@@ -273,6 +284,7 @@ def test(config_args, test_all_meta: dict, save_results: bool = True) -> None:
             )
             with open(config_file, "r", encoding="utf-8") as f:
                 example = json.load(f)
+            example_policy = example.get("protected_resource_policy", {})
 
             logger.info(f"[Domain]: {domain}")
             logger.info(f"[Example ID]: {example_id}")
@@ -299,6 +311,46 @@ def test(config_args, test_all_meta: dict, save_results: bool = True) -> None:
             # example start running
             try:
                 from argparse import Namespace
+                protected_monitor = None
+                if config_args.get("enable_protected_monitor"):
+                    policy_literals = []
+                    policy_regex = []
+                    policy_name = ""
+                    policy_hypothesis = ""
+                    policy_non_protected_examples = []
+                    if config_args.get("protected_monitor_from_example_policy") and example_policy:
+                        policy_literals = list(example_policy.get("protected_literals", []))
+                        policy_regex = list(example_policy.get("protected_regex", []))
+                        policy_name = str(example_policy.get("scenario_id", ""))
+                        policy_hypothesis = str(example_policy.get("hypothesis", ""))
+                        policy_non_protected_examples = list(
+                            example_policy.get("non_protected_examples", [])
+                        )
+                    else:
+                        policy_literals = list(config_args.get("protected_resources", []))
+                        if bool(config_args.get("protected_monitor_use_regex", False)):
+                            policy_regex = policy_literals
+                            policy_literals = []
+                    if policy_literals or policy_regex:
+                        protected_monitor = ProtectedResourceMonitor(
+                            protected=policy_literals,
+                            protected_regex=policy_regex,
+                            output_path=os.path.join(
+                                example_result_dir,
+                                config_args.get(
+                                    "protected_monitor_filename",
+                                    "protected_monitor.jsonl",
+                                ),
+                            ),
+                            use_regex=False,
+                            case_sensitive=bool(config_args.get("protected_monitor_case_sensitive", False)),
+                            regex_fullmatch=bool(config_args.get("protected_monitor_regex_fullmatch", True)),
+                            regex_anchor_patterns=bool(config_args.get("protected_monitor_regex_anchor_patterns", True)),
+                            log_unmatched_steps=bool(config_args.get("protected_monitor_log_unmatched_steps", False)),
+                            policy_name=policy_name,
+                            policy_hypothesis=policy_hypothesis,
+                            policy_non_protected_examples=policy_non_protected_examples,
+                        )
 
                 args = Namespace(**config_args)
                 lib_run_single.run_single_example(
@@ -310,6 +362,9 @@ def test(config_args, test_all_meta: dict, save_results: bool = True) -> None:
                     args,
                     example_result_dir,
                     scores,
+                    protected_monitor=protected_monitor,
+                    domain=domain,
+                    example_id=example_id,
                 )
 
                 if config_args["add_attack"] == "Yes":
@@ -347,12 +402,21 @@ def test(config_args, test_all_meta: dict, save_results: bool = True) -> None:
 
     env.close()
     logger.info(f"Total examples: {len(scores)}")
-    logger.info(f"Average Task score: {sum(scores) / len(scores)}")
+    if scores:
+        logger.info(f"Average Task score: {sum(scores) / len(scores)}")
+    else:
+        logger.info("Average Task score: n/a (no successful episodes completed)")
     if config_args["add_attack"] == "Yes":
-        logger.info(f"Average Attack score: {sum(attack_scores) / len(attack_scores)} (over {len(attack_scores)})")
-        logger.info(
-            f"Average Stealth score: {sum(stealth_scores) / len(stealth_scores)} (over {len(stealth_scores)})"
-        )
+        if attack_scores:
+            logger.info(f"Average Attack score: {sum(attack_scores) / len(attack_scores)} (over {len(attack_scores)})")
+        else:
+            logger.info("Average Attack score: n/a (no successful episodes completed)")
+        if stealth_scores:
+            logger.info(
+                f"Average Stealth score: {sum(stealth_scores) / len(stealth_scores)} (over {len(stealth_scores)})"
+            )
+        else:
+            logger.info("Average Stealth score: n/a (no successful episodes completed)")
 
 
 def get_unfinished(

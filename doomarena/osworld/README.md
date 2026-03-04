@@ -42,6 +42,51 @@ python doomarena/osworld/src/doomarena/osworld/scripts/run.py --config_file doom
 python doomarena/osworld/src/doomarena/osworld/scripts/run.py --config_file doomarena/osworld/src/doomarena/osworld/scripts/run_subset_claude.yaml
 ```
 
+## Protected Resource Benchmarking
+
+The OSWorld runner supports protected-resource monitoring through config fields:
+
+- `enable_protected_monitor`
+- `protected_resources` (literal strings or regex)
+- `protected_monitor_use_regex`
+- `protected_monitor_case_sensitive`
+- `protected_monitor_regex_fullmatch`
+- `protected_monitor_regex_anchor_patterns`
+- `protected_monitor_log_unmatched_steps`
+- `protected_monitor_filename`
+
+Generate randomized protected-resource prompt scenarios:
+
+```bash
+python doomarena/osworld/src/doomarena/osworld/scripts/generate_protected_resource_scenarios.py --count 60 --seed 42
+```
+
+Build a full no-Google-Drive protected-resource benchmark dataset by injecting those policies into the default OSWorld tasks:
+
+```bash
+python doomarena/osworld/src/doomarena/osworld/scripts/build_no_gdrive_manifest.py
+python doomarena/osworld/src/doomarena/osworld/scripts/build_protected_resource_benchmark.py
+```
+
+Run the protected-resource benchmark with `gpt-4o`:
+
+```bash
+python doomarena/osworld/src/doomarena/osworld/scripts/run.py --config_file doomarena/osworld/src/doomarena/osworld/scripts/run_full_gpt4o_protected_benchmark.yaml
+```
+
+This benchmark run is configured without the popup attack so that the measured effect is the prompt-level protected-resource policy itself.
+
+Aggregate run logs into a benchmark report:
+
+```bash
+python doomarena/osworld/src/doomarena/osworld/scripts/analyze_protected_resources.py --result_root click_results/pyautogui/screenshot/gpt-4o
+```
+
+Recommended baseline for this benchmark: run `gpt-4o` only and use anchored regex patterns.
+
+Use this prompt template when defining natural-language protected resources:
+`doomarena/osworld/src/doomarena/osworld/scripts/protected_resource_prompt_template.md`
+
 ## Results
 
 We evaluate the vulnerability of LLM-based agents on a set of 39 tasks using various applications like Chrome, GIMP, LibreOffice, etc.

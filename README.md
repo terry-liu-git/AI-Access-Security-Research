@@ -66,7 +66,7 @@ pip install -e doomarena/osworld
 Once the environments are set up, run the tests to make sure everything is working.
 ```bash
 make ci-tests
-make tests  # requires openai key
+make tests
 ```
 
 
