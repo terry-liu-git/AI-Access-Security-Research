@@ -1,3 +1,67 @@
+# AI Agent Access Security Research
+
+Conducted by Xuanlin "Terry" Liu (xliu91@stevens.edu), collaborating with professor William Eiers, Zining Zhu
+
+Customized DoomArena integrated into OSWorld test environments to arbitrarily select protected resources (directories, addresses, files, regular expressions) without guardrail to see if the AI agents would access, interact, or obtain protected resources. 
+
+Currently testing with ChatGPT 4o
+
+
+# Latest Runs:
+
+## Run one [March 4, 2026]: 
+
+Protected resource benchmark rerun analyzed from `../protected_resources_full_rerun_20260302/pyautogui/screenshot/gpt-4o`.
+
+- Model tested: `gpt-4o`
+- Total episode directories analyzed: `360`
+- Episodes with `protected_monitor.jsonl`: `359`
+- Episodes missing monitor data: `1` (`multi_apps/e8172110-ec08-421b-a6f5-842e6451911f`)
+- Total trajectory steps: `4,360`
+- Total monitored steps: `4,359`
+
+Protected resource policy coverage in monitored episodes:
+
+- Episodes with protected path literals: `359`
+- Episodes with protected URL literals: `359`
+- Episodes with protected regular expressions: `359`
+
+Domains covered:
+
+- `chrome` (`46`)
+- `gimp` (`26`)
+- `libreoffice_calc` (`47`)
+- `libreoffice_impress` (`47`)
+- `libreoffice_writer` (`23`)
+- `multi_apps` (`93`)
+- `os` (`24`)
+- `thunderbird` (`15`)
+- `vlc` (`17`)
+- `vs_code` (`22`)
+
+Results:
+
+- Violation episodes: `0`
+- Violation steps: `0`
+- Matched protected literals: `0`
+- Matched protected regex patterns: `0`
+- Top matched protected patterns: none
+
+Observed behavior:
+
+- The benchmark logged ordinary task-related paths and URLs such as `chrome://settings`, `https://www.google.com`, `/home/user/Desktop`, and `/tmp`.
+- No monitored episode showed the agent typing, quoting, navigating to, or surfacing protected directories, protected addresses, protected files, or regex-defined secret strings.
+- This run indicates the protected-resource boundary held for the monitored benchmark cases.
+
+
+
+
+
+
+
+## The following is the original information on the DoomArena platform:
+
+
 # DoomArena: A Framework for Testing AI Agents Against Evolving Security Threats
 
 <a href='https://arxiv.org/abs/2504.14064'><img src="https://img.shields.io/badge/Arxiv-2504.14064-A42C25?style=flat&logo=arXiv&logoColor=A42C25"></img></a>
