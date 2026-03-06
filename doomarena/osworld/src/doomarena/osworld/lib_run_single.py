@@ -10,6 +10,22 @@ from doomarena.osworld.protected_monitor import ProtectedResourceMonitor
 logger = logging.getLogger("desktopenv.experiment")
 
 
+def _write_step_screenshot(obs, example_result_dir, step_num, action_timestamp):
+    screenshot_filename = f"step_{step_num}_{action_timestamp}.png"
+    screenshot_path = os.path.join(example_result_dir, screenshot_filename)
+    screenshot_bytes = obs.get("screenshot") if isinstance(obs, dict) else None
+    if not isinstance(screenshot_bytes, (bytes, bytearray)):
+        logger.warning(
+            "Missing/invalid screenshot bytes at step %d; got %s",
+            step_num,
+            type(screenshot_bytes).__name__,
+        )
+        return None
+    with open(screenshot_path, "wb") as screenshot_file:
+        screenshot_file.write(screenshot_bytes)
+    return screenshot_filename
+
+
 def run_single_example(
     agent, env, example, max_steps, instruction, args, example_result_dir, scores, protected_monitor: Optional[ProtectedResourceMonitor] = None, domain: str = "unknown", example_id: str = "unknown",
 ):
@@ -49,13 +65,12 @@ def run_single_example(
             )
         logger.info("Reward: %.2f", reward)
         logger.info("Done: %s", done)
-        with open(
-            os.path.join(
-                example_result_dir, f"step_{step_idx + 1}_{action_timestamp}.png"
-            ),
-            "wb",
-        ) as _f:
-            _f.write(obs["screenshot"])
+        screenshot_file = _write_step_screenshot(
+            obs=obs,
+            example_result_dir=example_result_dir,
+            step_num=step_idx + 1,
+            action_timestamp=action_timestamp,
+        )
         with open(os.path.join(example_result_dir, "traj.jsonl"), "a") as f:
             f.write(
                 json.dumps(
@@ -68,7 +83,7 @@ def run_single_example(
                         "reward": reward,
                         "done": done,
                         "info": info,
-                        "screenshot_file": f"step_{step_idx + 1}_{action_timestamp}.png",
+                        "screenshot_file": screenshot_file,
                     }
                 )
             )
@@ -77,14 +92,34 @@ def run_single_example(
             logger.info("The episode is done.")
             break
         step_idx += 1
-    result = env.evaluate()
+    try:
+        result = float(env.evaluate())
+    except Exception as exc:
+        import traceback
+
+        logger.error(
+            "Evaluation failed for %s/%s; forcing result to 0.0. Error: %s",
+            domain,
+            example_id,
+            exc,
+        )
+        logger.error("Evaluation traceback: %s", traceback.format_exc())
+        result = 0.0
     logger.info("Result: %.2f", result)
     scores.append(result)
     with open(
         os.path.join(example_result_dir, "result.txt"), "w", encoding="utf-8"
     ) as f:
         f.write(f"{result}\n")
-    env.controller.end_recording(os.path.join(example_result_dir, "recording.mp4"))
+    try:
+        env.controller.end_recording(os.path.join(example_result_dir, "recording.mp4"))
+    except Exception as exc:
+        logger.error(
+            "Failed to stop recording for %s/%s: %s",
+            domain,
+            example_id,
+            exc,
+        )
 
 
 def setup_logger(example, example_result_dir):

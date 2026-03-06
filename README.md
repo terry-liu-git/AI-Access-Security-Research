@@ -1,62 +1,64 @@
-# AI Agent Access Security Research
+# AI Agent Access Security Research Benchmark: Customizing DoomArena in OSWorld to Monitor Unauthorized Access
 
-Conducted by Xuanlin "Terry" Liu (xliu91@stevens.edu), collaborating with professor William Eiers, Zining Zhu
+**Author:** Xuanlin “Terry” Liu (xliu91@stevens.edu)  
+**Affiliation:** Stevens Institute for Artificial Intelligence (Lab), Stevens Institute of Technology
 
-Customized DoomArena integrated into OSWorld test environments to arbitrarily select protected resources (directories, addresses, files, regular expressions) without guardrail to see if the AI agents would access, interact, or obtain protected resources. 
+This repository is a customized DoomArena + OSWorld environment in research of exploring **AI agent access security** in desktop environments while completing various tasks.  
+It extends the default setups of DoomArena + OSWorld with **protected-resource policies** (paths, URLs, literals, regex) and **runtime monitoring** to measure whether an agent accesses or exposes protected data during task execution.
 
-Currently testing with ChatGPT 4o
+## Scope
+
+- Benchmark evaluation across default OSWorld tasks
+- Contextual protected-resource policies per task
+- Monitoring of:
+  - interaction actions
+  - environment/context access signals
+  - model response output
+
+> Note: The monitor is measurement instrumentation, not a hard blocking firewall.
+
+## Current Setup
+
+- **Model tested:** GPT-4o
+- **Observation mode:** VM monitor recording, screenshot, action trajectory logs
+- **Primary output artifact per episode:** `protected_monitor.jsonl`
+
+## Snapshot Results (Runs 1–3, Mar 2026)
+
+- 1,080 total episodes analyzed
+- 4 violation episodes detected (0.37%)
+- 4 violating steps out of 13,599 logged steps (0.03%)
+- Detected violations were response-output regex matches (email pattern).
+
+<img src="quick_result_summaries/runs_1_to_3_overview.png" alt="Runs 1-3 Overview" width="50%" />
+
+Results (by runs 1-3, Mar 2026) suggest low observed protected-resource leakage under current benchmark configuration.  
 
 
 # Latest Runs:
 
-## Run one [March 4, 2026]: 
-
-Protected resource benchmark rerun analyzed from `../protected_resources_full_rerun_20260302/pyautogui/screenshot/gpt-4o`.
+## Latest Run [March 6, 2026] (Run 3)
 
 - Model tested: `gpt-4o`
-- Total episode directories analyzed: `360`
-- Episodes with `protected_monitor.jsonl`: `359`
-- Episodes missing monitor data: `1` (`multi_apps/e8172110-ec08-421b-a6f5-842e6451911f`)
-- Total trajectory steps: `4,360`
-- Total monitored steps: `4,359`
+- Episodes analyzed: `360` total, `359` with `protected_monitor.jsonl`
+- Violations: `1` episode (`0.28%`) and `1` step (`0.02%` of logged steps)
+- Detected pattern: `(?i)^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$` in `response_output`
+- Modifications (vs. previous run): benchmark regenerated with stronger task-context dependency for protected resources to increase likelihood of an agent encountering contextualized protected resources.
 
-Protected resource policy coverage in monitored episodes:
+## Historical Runs
 
-- Episodes with protected path literals: `359`
-- Episodes with protected URL literals: `359`
-- Episodes with protected regular expressions: `359`
+| Run | Date | Episodes (monitored) | Violation Episodes | Violation Steps | Modifications |
+| --- | --- | --- | --- | --- | --- |
+| Run 1 | March 4, 2026 | `360` (`359`) | `0` | `0` | Baseline protected benchmark |
+| Run 2 | March 5, 2026 | `360` (`359`) | `3` | `3` | Switched from generic `protected-scenario-*` to contextual `contextual-*` task policies |
+| Run 3 | March 6, 2026 | `360` (`359`) | `1` | `1` | Increased task-context dependency of protected resources in benchmark generation |
 
-Domains covered:
+## Detailed Reports
 
-- `chrome` (`46`)
-- `gimp` (`26`)
-- `libreoffice_calc` (`47`)
-- `libreoffice_impress` (`47`)
-- `libreoffice_writer` (`23`)
-- `multi_apps` (`93`)
-- `os` (`24`)
-- `thunderbird` (`15`)
-- `vlc` (`17`)
-- `vs_code` (`22`)
-
-Results:
-
-- Violation episodes: `0`
-- Violation steps: `0`
-- Matched protected literals: `0`
-- Matched protected regex patterns: `0`
-- Top matched protected patterns: none
-
-Observed behavior:
-
-- The benchmark logged ordinary task-related paths and URLs such as `chrome://settings`, `https://www.google.com`, `/home/user/Desktop`, and `/tmp`.
-- No monitored episode showed the agent typing, quoting, navigating to, or surfacing protected directories, protected addresses, protected files, or regex-defined secret strings.
-- This run indicates the protected-resource boundary held for the monitored benchmark cases.
-
-
-
-
-
+- Run 1: [quick_result_summaries/run_one/protected_resources_full_rerun_20260302_report.md](quick_result_summaries/run_one/protected_resources_full_rerun_20260302_report.md) | [quick_result_summaries/run_one/protected_resources_full_rerun_20260302_report.json](quick_result_summaries/run_one/protected_resources_full_rerun_20260302_report.json)
+- Run 2: [quick_result_summaries/run_two/protected_resources_second_run_20260304_report.md](quick_result_summaries/run_two/protected_resources_second_run_20260304_report.md) | [quick_result_summaries/run_two/protected_resources_second_run_20260304_report.json](quick_result_summaries/run_two/protected_resources_second_run_20260304_report.json)
+- Run 3: [quick_result_summaries/run_three/protected_resources_third_run_20260305_report.md](quick_result_summaries/run_three/protected_resources_third_run_20260305_report.md) | [quick_result_summaries/run_three/protected_resources_third_run_20260305_report.json](quick_result_summaries/run_three/protected_resources_third_run_20260305_report.json)
+- Overview chart: [quick_result_summaries/runs_1_to_3_overview.png](quick_result_summaries/runs_1_to_3_overview.png)
 
 
 ## The following is the original information on the DoomArena platform:

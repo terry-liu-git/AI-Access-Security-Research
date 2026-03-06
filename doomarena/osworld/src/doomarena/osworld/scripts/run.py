@@ -72,6 +72,65 @@ logger.addHandler(sdebug_handler)
 logger = logging.getLogger("desktopenv.experiment")
 
 
+def _apply_evaluator_compat_patches() -> None:
+    try:
+        import desktop_env.evaluators.metrics as metrics_module
+    except Exception as exc:
+        logger.warning("Unable to import evaluator metrics module: %s", exc)
+        return
+
+    if not hasattr(metrics_module, "check_structure_sim_with_threshold"):
+        try:
+            from desktop_env.evaluators.metrics.gimp import (
+                check_structure_sim_with_threshold,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Could not import check_structure_sim_with_threshold: %s", exc
+            )
+        else:
+            setattr(
+                metrics_module,
+                "check_structure_sim_with_threshold",
+                check_structure_sim_with_threshold,
+            )
+            logger.info(
+                "Patched metrics.check_structure_sim_with_threshold from gimp module."
+            )
+
+    try:
+        from desktop_env.evaluators.metrics import chrome as chrome_metrics
+    except Exception as exc:
+        logger.warning("Unable to import chrome metrics module: %s", exc)
+        return
+
+    compare_pdf_images = getattr(chrome_metrics, "compare_pdf_images", None)
+    if compare_pdf_images is None:
+        return
+    if getattr(compare_pdf_images, "_doomarena_safe_wrapped", False):
+        return
+
+    def _safe_compare_pdf_images(pdf1_path: str, pdf2_path: str, **kwargs) -> float:
+        try:
+            return float(compare_pdf_images(pdf1_path, pdf2_path, **kwargs))
+        except FileNotFoundError as exc:
+            logger.warning(
+                "compare_pdf_images raised FileNotFoundError (%s); returning 0.0.",
+                exc,
+            )
+            return 0.0
+        except Exception as exc:
+            logger.error(
+                "compare_pdf_images failed with %s; returning 0.0.", exc
+            )
+            return 0.0
+
+    _safe_compare_pdf_images._doomarena_safe_wrapped = True
+    chrome_metrics.compare_pdf_images = _safe_compare_pdf_images
+    setattr(metrics_module, "compare_pdf_images", _safe_compare_pdf_images)
+    logger.info("Patched metrics.compare_pdf_images with safe wrapper.")
+
+
 def config():
     parser = argparse.ArgumentParser(
         description="Run end-to-end evaluation on the benchmark"
@@ -236,6 +295,7 @@ def test(config_args, test_all_meta: dict, save_results: bool = True) -> None:
 
     # log args
     logger.info("Args: %s", config_args)
+    _apply_evaluator_compat_patches()
 
     agent = PromptAgent(
         model=config_args["model"],
@@ -395,7 +455,12 @@ def test(config_args, test_all_meta: dict, save_results: bool = True) -> None:
                 with open(os.path.join(example_result_dir, "traj.jsonl"), "a") as f:
                     f.write(
                         json.dumps(
-                            {"Error": f"Time limit exceeded in {domain}/{example_id}"}
+                            {
+                                "Error": (
+                                    f"{type(e).__name__}: {e} "
+                                    f"in {domain}/{example_id}"
+                                )
+                            }
                         )
                     )
                     f.write("\n")

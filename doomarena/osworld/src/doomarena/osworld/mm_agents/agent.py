@@ -1,3 +1,4 @@
+import ast
 import base64
 import json
 import logging
@@ -222,9 +223,134 @@ def parse_code_from_string(input_string):
                 codes.append("\n".join(match.split("\n")[:-1]))
             codes.append(match.split("\n")[-1])
         else:
-            codes.append(match)
+            codes.append(_sanitize_code_snippet(match))
 
     return codes
+
+
+_HOME_PLACEHOLDER_RE = re.compile(
+    r"/home/(?:your-?username|yourusername|username)/", re.IGNORECASE
+)
+_NARRATION_LINE_RE = re.compile(r"^[A-Za-z][A-Za-z0-9 ,.'\"!?/_-]{2,}$")
+
+
+def _looks_like_narration(line: str) -> bool:
+    stripped = line.strip()
+    if not stripped:
+        return False
+    if stripped.startswith("#"):
+        return False
+    if stripped.startswith(("1.", "2.", "3.", "4.", "5.", "- ", "* ")):
+        return True
+    if any(ch in stripped for ch in "(){}[]=:;\\"):
+        return False
+    lowered = stripped.lower()
+    if lowered.startswith(
+        (
+            "import ",
+            "from ",
+            "if ",
+            "elif ",
+            "else",
+            "for ",
+            "while ",
+            "def ",
+            "class ",
+            "return ",
+            "try",
+            "except",
+            "with ",
+            "print(",
+            "pyautogui.",
+            "time.",
+            "os.",
+            "subprocess.",
+            "pyperclip.",
+        )
+    ):
+        return False
+    return bool(_NARRATION_LINE_RE.fullmatch(stripped))
+
+
+def _inject_runtime_compat(code: str) -> str:
+    patched = _HOME_PLACEHOLDER_RE.sub("/home/user/", code)
+
+    if "subprocess." in patched and not re.search(
+        r"^\s*import\s+subprocess\b", patched, flags=re.MULTILINE
+    ):
+        patched = "import subprocess\n" + patched
+
+    if "pyautogui.paste(" in patched or "pyautogui.copy(" in patched:
+        shim = (
+            "def _doomarena_safe_paste():\n"
+            "    try:\n"
+            "        import pyperclip\n"
+            "        return pyperclip.paste()\n"
+            "    except Exception:\n"
+            "        return \"\"\n\n"
+            "def _doomarena_safe_copy(text):\n"
+            "    try:\n"
+            "        import pyperclip\n"
+            "        pyperclip.copy(text)\n"
+            "    except Exception:\n"
+            "        return None\n\n"
+            "try:\n"
+            "    import pyautogui\n"
+            "    if not hasattr(pyautogui, \"paste\"):\n"
+            "        pyautogui.paste = _doomarena_safe_paste\n"
+            "    if not hasattr(pyautogui, \"copy\"):\n"
+            "        pyautogui.copy = _doomarena_safe_copy\n"
+            "except Exception:\n"
+            "    pass\n\n"
+        )
+        patched = shim + patched
+
+    return patched
+
+
+def _repair_python_syntax(code: str) -> str:
+    lines = code.splitlines()
+    for _ in range(12):
+        candidate = "\n".join(lines).strip()
+        if not candidate:
+            return ""
+        try:
+            ast.parse(candidate)
+            return candidate
+        except SyntaxError as exc:
+            idx = (exc.lineno or 1) - 1
+            if idx < 0 or idx >= len(lines):
+                break
+            raw_line = lines[idx]
+            stripped = raw_line.strip()
+            if not stripped:
+                lines.pop(idx)
+                continue
+            if stripped in {"python", "py", "bash", "sh"} or stripped.startswith(
+                ("```", "~~~")
+            ):
+                lines.pop(idx)
+                continue
+            if _looks_like_narration(stripped):
+                lines[idx] = f"# {stripped}"
+                continue
+            if "pyautogui.typewrite(" in stripped and stripped.count("'") % 2 == 1:
+                lines[idx] = stripped + "')"
+                continue
+            if "pyautogui.typewrite(" in stripped and stripped.count('"') % 2 == 1:
+                lines[idx] = stripped + '")'
+                continue
+            lines[idx] = f"# {stripped}"
+    return "\n".join(lines).strip()
+
+
+def _sanitize_code_snippet(code: str) -> str:
+    candidate = code.strip()
+    if candidate in {"WAIT", "DONE", "FAIL"}:
+        return candidate
+    candidate = _inject_runtime_compat(candidate)
+    repaired = _repair_python_syntax(candidate)
+    return repaired if repaired else candidate
 
 
 def parse_code_from_som_string(input_string, masks):
