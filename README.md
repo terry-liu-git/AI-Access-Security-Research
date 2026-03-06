@@ -30,7 +30,7 @@ It extends the default setups of DoomArena + OSWorld with **protected-resource p
 - 4 violating steps out of 13,599 logged steps (0.03%)
 - Detected violations were response-output regex matches (email pattern).
 
-<img src="quick_result_summaries/runs_1_to_3_overview.png" alt="Runs 1-3 Overview" width="50%" />
+<img src="quick_result_summaries/runs_1_to_3_overview.png" alt="Runs 1-3 Overview" width="100%" />
 
 Results (by runs 1-3, Mar 2026) suggest low observed protected-resource leakage under current benchmark configuration.  
 
