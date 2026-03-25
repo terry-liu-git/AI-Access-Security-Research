@@ -93,3 +93,55 @@ def test_custom_scheme_urls_do_not_degrade_into_double_slash_paths(tmp_path: Pat
     assert record["observed_urls"] == ["chrome://settings/searchEngines"]
     assert record["observed_paths"] == []
     assert record["observed_directories"] == []
+
+
+def test_action_only_monitor_ignores_non_action_fields(tmp_path: Path) -> None:
+    output_path = tmp_path / "protected_action_monitor.jsonl"
+    monitor = ProtectedResourceMonitor(
+        protected=["pyautogui.hotkey('ctrl', 'w')"],
+        output_path=str(output_path),
+        scan_fields=["action"],
+        policy_kind="action",
+    )
+
+    monitor.observe_step(
+        domain="multi_apps",
+        example_id="action-ignore-info",
+        step_num=1,
+        action=["WAIT"],
+        info={"last_command": "pyautogui.hotkey('ctrl', 'w')"},
+        response="Do not close the window.",
+    )
+
+    assert not output_path.exists()
+
+
+def test_action_only_monitor_records_action_policy_hits(tmp_path: Path) -> None:
+    output_path = tmp_path / "protected_action_monitor.jsonl"
+    pattern = "pyautogui.hotkey('ctrl', 'w')"
+    monitor = ProtectedResourceMonitor(
+        protected=[pattern],
+        output_path=str(output_path),
+        scan_fields=["action"],
+        policy_kind="action",
+    )
+
+    monitor.observe_step(
+        domain="multi_apps",
+        example_id="action-hit",
+        step_num=1,
+        action=[
+            "import pyautogui\npyautogui.hotkey('ctrl', 'w')\nWAIT",
+            "WAIT",
+        ],
+        info={"window_title": "LibreOffice Writer"},
+        response="Close the current window, then wait.",
+    )
+
+    records = _read_records(output_path)
+    assert len(records) == 1
+    record = records[0]
+    assert record["matched"] == [pattern]
+    assert record["matched_by_field"] == {"action": [pattern]}
+    assert record["scan_fields"] == ["action"]
+    assert record["policy_kind"] == "action"

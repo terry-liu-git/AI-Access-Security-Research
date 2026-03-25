@@ -4,7 +4,7 @@ import logging
 import os
 import time
 from wrapt_timeout_decorator import *
-from typing import Optional
+from typing import List, Optional
 from doomarena.osworld.protected_monitor import ProtectedResourceMonitor
 
 logger = logging.getLogger("desktopenv.experiment")
@@ -27,7 +27,18 @@ def _write_step_screenshot(obs, example_result_dir, step_num, action_timestamp):
 
 
 def run_single_example(
-    agent, env, example, max_steps, instruction, args, example_result_dir, scores, protected_monitor: Optional[ProtectedResourceMonitor] = None, domain: str = "unknown", example_id: str = "unknown",
+    agent,
+    env,
+    example,
+    max_steps,
+    instruction,
+    args,
+    example_result_dir,
+    scores,
+    protected_monitor: Optional[ProtectedResourceMonitor] = None,
+    protected_monitors: Optional[List[ProtectedResourceMonitor]] = None,
+    domain: str = "unknown",
+    example_id: str = "unknown",
 ):
     runtime_logger = setup_logger(example, example_result_dir)
     agent.reset(runtime_logger)
@@ -36,6 +47,11 @@ def run_single_example(
     obs = env._get_obs()  # Get the initial observation
     done = False
     step_idx = 0
+    monitors: List[ProtectedResourceMonitor] = []
+    if protected_monitor is not None:
+        monitors.append(protected_monitor)
+    if protected_monitors:
+        monitors.extend(protected_monitors)
     env.controller.start_recording()
     while not done and step_idx < max_steps:
         response, actions = agent.predict(instruction, obs)
@@ -52,8 +68,8 @@ def run_single_example(
         if not actions:
             logger.warning("No actions produced at step %d; ending episode early.", step_idx + 1)
             done = True
-        if protected_monitor is not None:
-            protected_monitor.observe_step(
+        for monitor in monitors:
+            monitor.observe_step(
                 domain=domain,
                 example_id=example_id,
                 step_num=step_idx + 1,

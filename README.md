@@ -4,16 +4,18 @@
 **Affiliation:** Stevens Institute for Artificial Intelligence (Lab), Stevens Institute of Technology
 
 This repository is a customized DoomArena + OSWorld environment in research of exploring **AI agent access security** in desktop environments while completing various tasks.  
-It extends the default setups of DoomArena + OSWorld with **protected-resource policies** (paths, URLs, literals, regex) and **runtime monitoring** to measure whether an agent accesses or exposes protected data during task execution.
+It extends the default setups of DoomArena + OSWorld with **protected-resource / protected-action policies** (paths, URLs, literals, regex) and **runtime monitoring** to measure whether an agent accesses, exposes, or executes prohibited behavior during task execution.
 
 ## Scope
 
 - Benchmark evaluation across default OSWorld tasks
-- Contextual protected-resource policies per task
+- Contextual protected-resource and protected-action policies per task
 - Monitoring of:
   - interaction actions
   - environment/context access signals
   - model response output
+
+The OSWorld integration now supports a dedicated protected-action benchmark for testing whether an agent still emits explicitly prohibited actions.
 
 > Note: The monitor is measurement instrumentation, not a hard blocking firewall.
 
@@ -21,7 +23,7 @@ It extends the default setups of DoomArena + OSWorld with **protected-resource p
 
 - **Model tested:** GPT-4o
 - **Observation mode:** VM monitor recording, screenshot, action trajectory logs
-- **Primary output artifact per episode:** `protected_monitor.jsonl`
+- **Primary output artifacts per episode:** `protected_monitor.jsonl`, `protected_action_monitor.jsonl` (when enabled)
 
 ## Snapshot Results (Runs 1–3, Mar 2026)
 
@@ -58,6 +60,8 @@ Results (by runs 1-3, Mar 2026) suggest low observed protected-resource leakage 
 - Run 1: [quick_result_summaries/run_one/protected_resources_full_rerun_20260302_report.md](quick_result_summaries/run_one/protected_resources_full_rerun_20260302_report.md) | [quick_result_summaries/run_one/protected_resources_full_rerun_20260302_report.json](quick_result_summaries/run_one/protected_resources_full_rerun_20260302_report.json)
 - Run 2: [quick_result_summaries/run_two/protected_resources_second_run_20260304_report.md](quick_result_summaries/run_two/protected_resources_second_run_20260304_report.md) | [quick_result_summaries/run_two/protected_resources_second_run_20260304_report.json](quick_result_summaries/run_two/protected_resources_second_run_20260304_report.json)
 - Run 3: [quick_result_summaries/run_three/protected_resources_third_run_20260305_report.md](quick_result_summaries/run_three/protected_resources_third_run_20260305_report.md) | [quick_result_summaries/run_three/protected_resources_third_run_20260305_report.json](quick_result_summaries/run_three/protected_resources_third_run_20260305_report.json)
+- Run 4: [quick_result_summaries/run_four/protected_resources_fourth_run_20260306_report.md](quick_result_summaries/run_four/protected_resources_fourth_run_20260306_report.md) | [quick_result_summaries/run_four/protected_resources_fourth_run_20260306_report.json](quick_result_summaries/run_four/protected_resources_fourth_run_20260306_report.json)
+- Protected action benchmark: [quick_result_summaries/action_violation_run/protected_action_benchmark_report.md](quick_result_summaries/action_violation_run/protected_action_benchmark_report.md) | [quick_result_summaries/action_violation_run/protected_action_benchmark_report.json](quick_result_summaries/action_violation_run/protected_action_benchmark_report.json)
 - Overview chart: [quick_result_summaries/runs_1_to_3_overview.png](quick_result_summaries/runs_1_to_3_overview.png)
 
 

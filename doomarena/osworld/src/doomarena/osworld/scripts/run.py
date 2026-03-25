@@ -182,6 +182,15 @@ def config():
         "protected_monitor_log_unmatched_steps": False,
         "protected_monitor_filename": "protected_monitor.jsonl",
         "protected_monitor_from_example_policy": True,
+        "enable_protected_action_monitor": False,
+        "protected_actions": [],
+        "protected_action_monitor_use_regex": False,
+        "protected_action_monitor_case_sensitive": False,
+        "protected_action_monitor_regex_fullmatch": True,
+        "protected_action_monitor_regex_anchor_patterns": True,
+        "protected_action_monitor_log_unmatched_steps": False,
+        "protected_action_monitor_filename": "protected_action_monitor.jsonl",
+        "protected_action_monitor_from_example_policy": True,
     }
 
     # Apply defaults
@@ -287,6 +296,71 @@ def fetch_attack_configs(attackable_components: list, attacks: list):
     return attack_config_objects
 
 
+def _build_policy_monitor(
+    *,
+    config_args: dict,
+    example_policy: dict,
+    example_result_dir: str,
+    enable_key: str,
+    from_example_policy_key: str,
+    fallback_patterns_key: str,
+    use_regex_key: str,
+    case_sensitive_key: str,
+    regex_fullmatch_key: str,
+    regex_anchor_patterns_key: str,
+    log_unmatched_steps_key: str,
+    filename_key: str,
+    scan_fields: list[str],
+    policy_kind: str,
+):
+    if not config_args.get(enable_key):
+        return None
+
+    policy_literals = []
+    policy_regex = []
+    policy_name = ""
+    policy_hypothesis = ""
+    policy_non_protected_examples = []
+
+    if config_args.get(from_example_policy_key) and example_policy:
+        policy_literals = list(example_policy.get("protected_literals", []))
+        policy_regex = list(example_policy.get("protected_regex", []))
+        policy_name = str(example_policy.get("scenario_id", ""))
+        policy_hypothesis = str(example_policy.get("hypothesis", ""))
+        policy_non_protected_examples = list(
+            example_policy.get("non_protected_examples", [])
+        )
+    else:
+        policy_literals = list(config_args.get(fallback_patterns_key, []))
+        if bool(config_args.get(use_regex_key, False)):
+            policy_regex = policy_literals
+            policy_literals = []
+
+    if not policy_literals and not policy_regex:
+        return None
+
+    return ProtectedResourceMonitor(
+        protected=policy_literals,
+        protected_regex=policy_regex,
+        output_path=os.path.join(
+            example_result_dir,
+            config_args.get(filename_key, "protected_monitor.jsonl"),
+        ),
+        use_regex=False,
+        case_sensitive=bool(config_args.get(case_sensitive_key, False)),
+        regex_fullmatch=bool(config_args.get(regex_fullmatch_key, True)),
+        regex_anchor_patterns=bool(
+            config_args.get(regex_anchor_patterns_key, True)
+        ),
+        log_unmatched_steps=bool(config_args.get(log_unmatched_steps_key, False)),
+        policy_name=policy_name,
+        policy_hypothesis=policy_hypothesis,
+        policy_non_protected_examples=policy_non_protected_examples,
+        scan_fields=scan_fields,
+        policy_kind=policy_kind,
+    )
+
+
 def test(config_args, test_all_meta: dict, save_results: bool = True) -> None:
     scores = []
     attack_scores = []
@@ -345,6 +419,7 @@ def test(config_args, test_all_meta: dict, save_results: bool = True) -> None:
             with open(config_file, "r", encoding="utf-8") as f:
                 example = json.load(f)
             example_policy = example.get("protected_resource_policy", {})
+            example_action_policy = example.get("protected_action_policy", {})
 
             logger.info(f"[Domain]: {domain}")
             logger.info(f"[Example ID]: {example_id}")
@@ -371,46 +446,44 @@ def test(config_args, test_all_meta: dict, save_results: bool = True) -> None:
             # example start running
             try:
                 from argparse import Namespace
-                protected_monitor = None
-                if config_args.get("enable_protected_monitor"):
-                    policy_literals = []
-                    policy_regex = []
-                    policy_name = ""
-                    policy_hypothesis = ""
-                    policy_non_protected_examples = []
-                    if config_args.get("protected_monitor_from_example_policy") and example_policy:
-                        policy_literals = list(example_policy.get("protected_literals", []))
-                        policy_regex = list(example_policy.get("protected_regex", []))
-                        policy_name = str(example_policy.get("scenario_id", ""))
-                        policy_hypothesis = str(example_policy.get("hypothesis", ""))
-                        policy_non_protected_examples = list(
-                            example_policy.get("non_protected_examples", [])
-                        )
-                    else:
-                        policy_literals = list(config_args.get("protected_resources", []))
-                        if bool(config_args.get("protected_monitor_use_regex", False)):
-                            policy_regex = policy_literals
-                            policy_literals = []
-                    if policy_literals or policy_regex:
-                        protected_monitor = ProtectedResourceMonitor(
-                            protected=policy_literals,
-                            protected_regex=policy_regex,
-                            output_path=os.path.join(
-                                example_result_dir,
-                                config_args.get(
-                                    "protected_monitor_filename",
-                                    "protected_monitor.jsonl",
-                                ),
-                            ),
-                            use_regex=False,
-                            case_sensitive=bool(config_args.get("protected_monitor_case_sensitive", False)),
-                            regex_fullmatch=bool(config_args.get("protected_monitor_regex_fullmatch", True)),
-                            regex_anchor_patterns=bool(config_args.get("protected_monitor_regex_anchor_patterns", True)),
-                            log_unmatched_steps=bool(config_args.get("protected_monitor_log_unmatched_steps", False)),
-                            policy_name=policy_name,
-                            policy_hypothesis=policy_hypothesis,
-                            policy_non_protected_examples=policy_non_protected_examples,
-                        )
+                protected_monitors = []
+                resource_monitor = _build_policy_monitor(
+                    config_args=config_args,
+                    example_policy=example_policy,
+                    example_result_dir=example_result_dir,
+                    enable_key="enable_protected_monitor",
+                    from_example_policy_key="protected_monitor_from_example_policy",
+                    fallback_patterns_key="protected_resources",
+                    use_regex_key="protected_monitor_use_regex",
+                    case_sensitive_key="protected_monitor_case_sensitive",
+                    regex_fullmatch_key="protected_monitor_regex_fullmatch",
+                    regex_anchor_patterns_key="protected_monitor_regex_anchor_patterns",
+                    log_unmatched_steps_key="protected_monitor_log_unmatched_steps",
+                    filename_key="protected_monitor_filename",
+                    scan_fields=["action", "info", "response", "a11y_tree"],
+                    policy_kind="resource",
+                )
+                if resource_monitor is not None:
+                    protected_monitors.append(resource_monitor)
+
+                action_monitor = _build_policy_monitor(
+                    config_args=config_args,
+                    example_policy=example_action_policy,
+                    example_result_dir=example_result_dir,
+                    enable_key="enable_protected_action_monitor",
+                    from_example_policy_key="protected_action_monitor_from_example_policy",
+                    fallback_patterns_key="protected_actions",
+                    use_regex_key="protected_action_monitor_use_regex",
+                    case_sensitive_key="protected_action_monitor_case_sensitive",
+                    regex_fullmatch_key="protected_action_monitor_regex_fullmatch",
+                    regex_anchor_patterns_key="protected_action_monitor_regex_anchor_patterns",
+                    log_unmatched_steps_key="protected_action_monitor_log_unmatched_steps",
+                    filename_key="protected_action_monitor_filename",
+                    scan_fields=["action"],
+                    policy_kind="action",
+                )
+                if action_monitor is not None:
+                    protected_monitors.append(action_monitor)
 
                 args = Namespace(**config_args)
                 lib_run_single.run_single_example(
@@ -422,7 +495,7 @@ def test(config_args, test_all_meta: dict, save_results: bool = True) -> None:
                     args,
                     example_result_dir,
                     scores,
-                    protected_monitor=protected_monitor,
+                    protected_monitors=protected_monitors,
                     domain=domain,
                     example_id=example_id,
                 )

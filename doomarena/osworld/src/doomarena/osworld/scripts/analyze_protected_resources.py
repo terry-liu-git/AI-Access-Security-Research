@@ -315,6 +315,7 @@ def _write_report(
     output_md: str,
     output_json: str,
     result_root: str,
+    report_title: str,
     summaries: List[ExampleSummary],
     pattern_hits: Counter,
     pattern_episode_hits: Counter,
@@ -367,7 +368,7 @@ def _write_report(
     url_rows = [[item, str(count)] for item, count in top_urls]
 
     report_lines = [
-        "# Protected Resource Benchmark Report",
+        f"# {report_title}",
         "",
         f"- Generated: {generated_utc}",
         f"- Result root: `{result_root}`",
@@ -487,6 +488,11 @@ def main() -> None:
         default="",
         help="Path to machine-readable JSON output (default: <result_root>/protected_resource_report.json).",
     )
+    parser.add_argument(
+        "--report_title",
+        default="Protected Resource Benchmark Report",
+        help="Heading used in the markdown report.",
+    )
     args = parser.parse_args()
 
     result_root = os.path.abspath(args.result_root)
@@ -532,6 +538,7 @@ def main() -> None:
         output_md=output_md,
         output_json=output_json,
         result_root=result_root,
+        report_title=args.report_title,
         summaries=summaries,
         pattern_hits=pattern_hits,
         pattern_episode_hits=pattern_episode_hits,

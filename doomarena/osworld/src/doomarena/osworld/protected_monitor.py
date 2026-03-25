@@ -34,6 +34,7 @@ _RESOURCE_URL_RE = re.compile(
     flags=re.IGNORECASE,
 )
 _TRAILING_ESCAPED_WS_RE = re.compile(r"(?:\\[nrt])+$")
+_DEFAULT_SCAN_FIELDS = ("action", "info", "response", "a11y_tree")
 
 
 def _compile_pattern(
@@ -75,6 +76,29 @@ def _normalize_observed_path(path: str) -> str:
     return normalized
 
 
+def _normalize_scan_fields(scan_fields: Optional[List[str]]) -> List[str]:
+    if not scan_fields:
+        return list(_DEFAULT_SCAN_FIELDS)
+
+    normalized: List[str] = []
+    seen = set()
+    for field_name in scan_fields:
+        clean = str(field_name).strip()
+        if not clean:
+            continue
+        if clean not in _DEFAULT_SCAN_FIELDS:
+            raise ValueError(
+                f"Unsupported protected monitor scan field: {clean}. "
+                f"Expected one of {', '.join(_DEFAULT_SCAN_FIELDS)}."
+            )
+        if clean in seen:
+            continue
+        normalized.append(clean)
+        seen.add(clean)
+
+    return normalized or list(_DEFAULT_SCAN_FIELDS)
+
+
 @dataclass
 class ProtectedResourceMonitor:
     protected: List[str]
@@ -88,6 +112,10 @@ class ProtectedResourceMonitor:
     policy_name: str = ""
     policy_hypothesis: str = ""
     policy_non_protected_examples: List[str] = field(default_factory=list)
+    scan_fields: List[str] = field(
+        default_factory=lambda: list(_DEFAULT_SCAN_FIELDS)
+    )
+    policy_kind: str = "resource"
 
     _count: int = 0
     _hits: Dict[str, int] = field(default_factory=dict)
@@ -98,6 +126,8 @@ class ProtectedResourceMonitor:
     _lock: threading.Lock = field(default_factory=threading.Lock)
 
     def __post_init__(self) -> None:
+        self.scan_fields = _normalize_scan_fields(self.scan_fields)
+        self.policy_kind = str(self.policy_kind or "resource")
         flags = 0 if self.case_sensitive else re.IGNORECASE
         regex_patterns = list(self.protected_regex)
         if self.use_regex:
@@ -215,12 +245,20 @@ class ProtectedResourceMonitor:
     ) -> None:
         ts = ts if ts is not None else time.time()
 
-        blob = {"action": action, "info": info}
-        if response is not None:
+        blob: Dict[str, Any] = {}
+        if "action" in self.scan_fields:
+            blob["action"] = action
+        if "info" in self.scan_fields:
+            blob["info"] = info
+        if response is not None and "response" in self.scan_fields:
             blob["response"] = response
-        if obs and isinstance(obs, dict):
-            if "a11y_tree" in obs:
-                blob["a11y_tree"] = obs.get("a11y_tree")
+        if (
+            obs
+            and isinstance(obs, dict)
+            and "a11y_tree" in self.scan_fields
+            and "a11y_tree" in obs
+        ):
+            blob["a11y_tree"] = obs.get("a11y_tree")
         field_text = {
             key: _safe_to_text(val)
             for key, val in blob.items()
@@ -267,6 +305,8 @@ class ProtectedResourceMonitor:
                 "policy_literals": list(self.protected),
                 "policy_regex": list(self.protected_regex),
                 "policy_non_protected_examples": list(self.policy_non_protected_examples),
+                "scan_fields": list(self.scan_fields),
+                "policy_kind": self.policy_kind,
             }
 
             with open(self.output_path, "a", encoding="utf-8") as f:
