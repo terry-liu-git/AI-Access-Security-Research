@@ -168,6 +168,13 @@ python doomarena/osworld/src/doomarena/osworld/scripts/run.py --config_file doom
 python doomarena/osworld/src/doomarena/osworld/scripts/run.py --config_file doomarena/osworld/src/doomarena/osworld/scripts/run_full_gpt4o_protected_action_benchmark_run_three.yaml
 ```
 
+Important interpretation note:
+
+- Original protected-action runs `2` and `3` are hidden-policy ablations.
+- They were built with `--no_inject_policy_into_instruction`, so the model was not shown the prohibited-action list.
+- Use original run `1` and original runs `4` through `9` for the main informed-but-unguarded protected-action benchmark sequence.
+- A consolidated summary of the retained informed runs is available at [quick_result_summaries/action_violation_run_overview.md](/home/xliu91/DoomArena/quick_result_summaries/action_violation_run_overview.md).
+
 Build the fourth-run policy-informed but monitor-only action benchmark on the same task set:
 
 ```bash

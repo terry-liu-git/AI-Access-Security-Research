@@ -57,12 +57,52 @@ Results (by runs 1-3, Mar 2026) suggest low observed protected-resource leakage 
 
 ## Detailed Reports
 
+### Protected Resources
+
 - Run 1: [quick_result_summaries/run_one/protected_resources_full_rerun_20260302_report.md](quick_result_summaries/run_one/protected_resources_full_rerun_20260302_report.md) | [quick_result_summaries/run_one/protected_resources_full_rerun_20260302_report.json](quick_result_summaries/run_one/protected_resources_full_rerun_20260302_report.json)
 - Run 2: [quick_result_summaries/run_two/protected_resources_second_run_20260304_report.md](quick_result_summaries/run_two/protected_resources_second_run_20260304_report.md) | [quick_result_summaries/run_two/protected_resources_second_run_20260304_report.json](quick_result_summaries/run_two/protected_resources_second_run_20260304_report.json)
 - Run 3: [quick_result_summaries/run_three/protected_resources_third_run_20260305_report.md](quick_result_summaries/run_three/protected_resources_third_run_20260305_report.md) | [quick_result_summaries/run_three/protected_resources_third_run_20260305_report.json](quick_result_summaries/run_three/protected_resources_third_run_20260305_report.json)
 - Run 4: [quick_result_summaries/run_four/protected_resources_fourth_run_20260306_report.md](quick_result_summaries/run_four/protected_resources_fourth_run_20260306_report.md) | [quick_result_summaries/run_four/protected_resources_fourth_run_20260306_report.json](quick_result_summaries/run_four/protected_resources_fourth_run_20260306_report.json)
-- Protected action benchmark: [quick_result_summaries/action_violation_run/protected_action_benchmark_report.md](quick_result_summaries/action_violation_run/protected_action_benchmark_report.md) | [quick_result_summaries/action_violation_run/protected_action_benchmark_report.json](quick_result_summaries/action_violation_run/protected_action_benchmark_report.json)
 - Overview chart: [quick_result_summaries/runs_1_to_3_overview.png](quick_result_summaries/runs_1_to_3_overview.png)
+
+### Protected Actions
+
+We retain only the protected-action runs where the model was explicitly informed of the prohibited actions and the runtime remained `monitor_only`.
+
+- Retained informed runs: original runs `1, 4, 5, 6, 7, 8, 9`
+- Removed from the main summary: original runs `2` and `3`
+- Reason: those two runs were hidden-policy ablations where `prompt_injected: false`, so the model was not shown the protected-action list
+
+Across the retained informed runs:
+
+- `2,520` total episodes
+- `149` violating episodes (`5.91%`)
+- `364` violating steps out of `30,188` logged steps (`1.21%`)
+- `19` successful violating episodes out of `129` successful episodes (`14.73%`)
+
+Overview artifacts:
+
+- Summary: [quick_result_summaries/action_violation_run_overview.md](quick_result_summaries/action_violation_run_overview.md)
+- Machine-readable metrics: [quick_result_summaries/action_violation_run_overview.json](quick_result_summaries/action_violation_run_overview.json)
+- Chart: [quick_result_summaries/action_violation_run_overview.svg](quick_result_summaries/action_violation_run_overview.svg)
+
+<img src="quick_result_summaries/action_violation_run_overview.svg" alt="Protected Action Violation Benchmark Overview" width="100%" />
+
+Retained run mapping:
+
+- [action_violation_run_one](quick_result_summaries/action_violation_run_one/protected_action_benchmark_report.md) = original run `1`
+- [action_violation_run_two](quick_result_summaries/action_violation_run_two/protected_action_benchmark_report.md) = original run `4`
+- [action_violation_run_three](quick_result_summaries/action_violation_run_three/protected_action_benchmark_report.md) = original run `5`
+- [action_violation_run_four](quick_result_summaries/action_violation_run_four/protected_action_benchmark_report.md) = original run `6`
+- [action_violation_run_five](quick_result_summaries/action_violation_run_five/protected_action_benchmark_report.md) = original run `7`
+- [action_violation_run_six](quick_result_summaries/action_violation_run_six/protected_action_benchmark_report.md) = original run `8`
+- [action_violation_run_seven](quick_result_summaries/action_violation_run_seven/protected_action_benchmark_report.md) = original run `9`
+
+Current headline findings:
+
+- Highest overall violation rate: retained `Run 5` / original run `7` with `30/360` violating episodes
+- Most successful violating episodes: retained `Run 6` and retained `Run 7` / original runs `8` and `9`, with `5` each
+- Highest success-conditioned violation rate: retained `Run 7` / original run `9`, where `27.78%` of successful episodes still violated the protected-action policy
 
 
 ## The following is the original information on the DoomArena platform:
