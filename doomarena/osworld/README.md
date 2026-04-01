@@ -119,6 +119,16 @@ python doomarena/osworld/src/doomarena/osworld/scripts/build_protected_action_be
   --output_root doomarena/osworld/generated_protected_action_benchmark/evaluation_examples
 ```
 
+Build the second-run hidden-policy action benchmark on the same task set, using executable-only policy matching:
+
+```bash
+python doomarena/osworld/src/doomarena/osworld/scripts/build_protected_action_benchmark.py \
+  --manifest doomarena/osworld/src/doomarena/osworld/scripts/test_all_no_gdrive.json \
+  --output_root doomarena/osworld/generated_protected_action_benchmark_run_two/evaluation_examples \
+  --no_inject_policy_into_instruction \
+  --policy_style executable_only
+```
+
 Build a smoke-sized action benchmark:
 
 ```bash
@@ -132,6 +142,180 @@ Run the smoke/full action-violation benchmark with `gpt-4o`:
 ```bash
 python doomarena/osworld/src/doomarena/osworld/scripts/run.py --config_file doomarena/osworld/src/doomarena/osworld/scripts/run_smoke_gpt4o_protected_action_benchmark.yaml
 python doomarena/osworld/src/doomarena/osworld/scripts/run.py --config_file doomarena/osworld/src/doomarena/osworld/scripts/run_full_gpt4o_protected_action_benchmark.yaml
+```
+
+Run the second protected-action benchmark:
+
+```bash
+python doomarena/osworld/src/doomarena/osworld/scripts/run.py --config_file doomarena/osworld/src/doomarena/osworld/scripts/run_smoke_gpt4o_protected_action_benchmark_run_two.yaml
+python doomarena/osworld/src/doomarena/osworld/scripts/run.py --config_file doomarena/osworld/src/doomarena/osworld/scripts/run_full_gpt4o_protected_action_benchmark_run_two.yaml
+```
+
+Build the third-run hidden-policy action benchmark on the same task set, with stricter executed-action matching:
+
+```bash
+python doomarena/osworld/src/doomarena/osworld/scripts/build_protected_action_benchmark.py \
+  --manifest doomarena/osworld/src/doomarena/osworld/scripts/test_all_no_gdrive.json \
+  --output_root doomarena/osworld/generated_protected_action_benchmark_run_three/evaluation_examples \
+  --no_inject_policy_into_instruction \
+  --policy_style executable_only
+```
+
+Run the third protected-action benchmark:
+
+```bash
+python doomarena/osworld/src/doomarena/osworld/scripts/run.py --config_file doomarena/osworld/src/doomarena/osworld/scripts/run_smoke_gpt4o_protected_action_benchmark_run_three.yaml
+python doomarena/osworld/src/doomarena/osworld/scripts/run.py --config_file doomarena/osworld/src/doomarena/osworld/scripts/run_full_gpt4o_protected_action_benchmark_run_three.yaml
+```
+
+Build the fourth-run policy-informed but monitor-only action benchmark on the same task set:
+
+```bash
+python doomarena/osworld/src/doomarena/osworld/scripts/build_protected_action_benchmark.py \
+  --manifest doomarena/osworld/src/doomarena/osworld/scripts/test_all_no_gdrive.json \
+  --output_root doomarena/osworld/generated_protected_action_benchmark_run_four/evaluation_examples \
+  --policy_style executable_only
+```
+
+Build the fourth-run smoke benchmark:
+
+```bash
+python doomarena/osworld/src/doomarena/osworld/scripts/build_protected_action_benchmark.py \
+  --manifest doomarena/osworld/src/doomarena/osworld/scripts/test_run3_smoke_regression.json \
+  --output_root doomarena/osworld/generated_protected_action_benchmark_run_four_smoke/evaluation_examples \
+  --policy_style executable_only
+```
+
+Run the fourth protected-action benchmark:
+
+```bash
+python doomarena/osworld/src/doomarena/osworld/scripts/run.py --config_file doomarena/osworld/src/doomarena/osworld/scripts/run_smoke_gpt4o_protected_action_benchmark_run_four.yaml
+python doomarena/osworld/src/doomarena/osworld/scripts/run.py --config_file doomarena/osworld/src/doomarena/osworld/scripts/run_full_gpt4o_protected_action_benchmark_run_four.yaml
+```
+
+Build the fifth-run policy-informed, monitor-only, task-adaptive action benchmark:
+
+```bash
+python doomarena/osworld/src/doomarena/osworld/scripts/build_protected_action_benchmark.py \
+  --manifest doomarena/osworld/src/doomarena/osworld/scripts/test_all_no_gdrive.json \
+  --output_root doomarena/osworld/generated_protected_action_benchmark_run_five/evaluation_examples \
+  --policy_style task_adaptive
+```
+
+Build the fifth-run smoke benchmark:
+
+```bash
+python doomarena/osworld/src/doomarena/osworld/scripts/build_protected_action_benchmark.py \
+  --manifest doomarena/osworld/src/doomarena/osworld/scripts/test_run3_smoke_regression.json \
+  --output_root doomarena/osworld/generated_protected_action_benchmark_run_five_smoke/evaluation_examples \
+  --policy_style task_adaptive
+```
+
+Run the fifth protected-action benchmark:
+
+```bash
+python doomarena/osworld/src/doomarena/osworld/scripts/run.py --config_file doomarena/osworld/src/doomarena/osworld/scripts/run_smoke_gpt4o_protected_action_benchmark_run_five.yaml
+python doomarena/osworld/src/doomarena/osworld/scripts/run.py --config_file doomarena/osworld/src/doomarena/osworld/scripts/run_full_gpt4o_protected_action_benchmark_run_five.yaml
+```
+
+Build the sixth-run policy-informed, monitor-only, task-surface action benchmark:
+
+```bash
+python doomarena/osworld/src/doomarena/osworld/scripts/build_protected_action_benchmark.py \
+  --manifest doomarena/osworld/src/doomarena/osworld/scripts/test_all_no_gdrive.json \
+  --output_root doomarena/osworld/generated_protected_action_benchmark_run_six/evaluation_examples \
+  --policy_style task_surface
+```
+
+Build the sixth-run smoke benchmark:
+
+```bash
+python doomarena/osworld/src/doomarena/osworld/scripts/build_protected_action_benchmark.py \
+  --manifest doomarena/osworld/src/doomarena/osworld/scripts/test_run3_smoke_regression.json \
+  --output_root doomarena/osworld/generated_protected_action_benchmark_run_six_smoke/evaluation_examples \
+  --policy_style task_surface
+```
+
+Run the sixth protected-action benchmark:
+
+```bash
+python doomarena/osworld/src/doomarena/osworld/scripts/run.py --config_file doomarena/osworld/src/doomarena/osworld/scripts/run_smoke_gpt4o_protected_action_benchmark_run_six.yaml
+python doomarena/osworld/src/doomarena/osworld/scripts/run.py --config_file doomarena/osworld/src/doomarena/osworld/scripts/run_full_gpt4o_protected_action_benchmark_run_six.yaml
+```
+
+Build the seventh-run policy-informed, monitor-only, task-surface action benchmark:
+
+```bash
+python doomarena/osworld/src/doomarena/osworld/scripts/build_protected_action_benchmark.py \
+  --manifest doomarena/osworld/src/doomarena/osworld/scripts/test_all_no_gdrive.json \
+  --output_root doomarena/osworld/generated_protected_action_benchmark_run_seven/evaluation_examples \
+  --policy_style task_surface
+```
+
+Build the seventh-run smoke benchmark:
+
+```bash
+python doomarena/osworld/src/doomarena/osworld/scripts/build_protected_action_benchmark.py \
+  --manifest doomarena/osworld/src/doomarena/osworld/scripts/test_run3_smoke_regression.json \
+  --output_root doomarena/osworld/generated_protected_action_benchmark_run_seven_smoke/evaluation_examples \
+  --policy_style task_surface
+```
+
+Run the seventh protected-action benchmark:
+
+```bash
+python doomarena/osworld/src/doomarena/osworld/scripts/run.py --config_file doomarena/osworld/src/doomarena/osworld/scripts/run_smoke_gpt4o_protected_action_benchmark_run_seven.yaml
+python doomarena/osworld/src/doomarena/osworld/scripts/run.py --config_file doomarena/osworld/src/doomarena/osworld/scripts/run_full_gpt4o_protected_action_benchmark_run_seven.yaml
+```
+
+Build the eighth-run policy-informed, monitor-only, task-surface action benchmark:
+
+```bash
+python doomarena/osworld/src/doomarena/osworld/scripts/build_protected_action_benchmark.py \
+  --manifest doomarena/osworld/src/doomarena/osworld/scripts/test_all_no_gdrive.json \
+  --output_root doomarena/osworld/generated_protected_action_benchmark_run_eight/evaluation_examples \
+  --policy_style task_surface
+```
+
+Build the eighth-run smoke benchmark:
+
+```bash
+python doomarena/osworld/src/doomarena/osworld/scripts/build_protected_action_benchmark.py \
+  --manifest doomarena/osworld/src/doomarena/osworld/scripts/test_run3_smoke_regression.json \
+  --output_root doomarena/osworld/generated_protected_action_benchmark_run_eight_smoke/evaluation_examples \
+  --policy_style task_surface
+```
+
+Run the eighth protected-action benchmark:
+
+```bash
+python doomarena/osworld/src/doomarena/osworld/scripts/run.py --config_file doomarena/osworld/src/doomarena/osworld/scripts/run_smoke_gpt4o_protected_action_benchmark_run_eight.yaml
+python doomarena/osworld/src/doomarena/osworld/scripts/run.py --config_file doomarena/osworld/src/doomarena/osworld/scripts/run_full_gpt4o_protected_action_benchmark_run_eight.yaml
+```
+
+Build the ninth-run policy-informed, monitor-only, task-surface action benchmark:
+
+```bash
+python doomarena/osworld/src/doomarena/osworld/scripts/build_protected_action_benchmark.py \
+  --manifest doomarena/osworld/src/doomarena/osworld/scripts/test_all_no_gdrive.json \
+  --output_root doomarena/osworld/generated_protected_action_benchmark_run_nine/evaluation_examples \
+  --policy_style task_surface
+```
+
+Build the ninth-run smoke benchmark:
+
+```bash
+python doomarena/osworld/src/doomarena/osworld/scripts/build_protected_action_benchmark.py \
+  --manifest doomarena/osworld/src/doomarena/osworld/scripts/test_run3_smoke_regression.json \
+  --output_root doomarena/osworld/generated_protected_action_benchmark_run_nine_smoke/evaluation_examples \
+  --policy_style task_surface
+```
+
+Run the ninth protected-action benchmark:
+
+```bash
+python doomarena/osworld/src/doomarena/osworld/scripts/run.py --config_file doomarena/osworld/src/doomarena/osworld/scripts/run_smoke_gpt4o_protected_action_benchmark_run_nine.yaml
+python doomarena/osworld/src/doomarena/osworld/scripts/run.py --config_file doomarena/osworld/src/doomarena/osworld/scripts/run_full_gpt4o_protected_action_benchmark_run_nine.yaml
 ```
 
 Example task config fragment for prompt-level action compliance testing:
@@ -170,7 +354,21 @@ protected_action_monitor_log_unmatched_steps: true
 protected_action_monitor_filename: "protected_action_monitor.jsonl"
 ```
 
-If you want to measure whether the model obeys a prohibited-action rule, make sure the task instruction explicitly includes that rule. The action monitor only measures what the agent emitted; it does not block the action.
+Two separate axes matter for protected-action experiments:
+
+- Policy visibility: whether the prohibited actions are shown to the model in the task instruction.
+- Enforcement mode: whether the runtime blocks violating actions or only records them.
+
+The current protected-action benchmark is monitor-only. It does not block the model from executing a violating action. If you want the model to know which actions are prohibited while still running unguarded, keep prompt injection enabled and use the monitor as observational logging only. Use `--no_inject_policy_into_instruction` only for hidden-policy ablations where the model should not see the prohibited-action list.
+
+For stronger task-to-policy coupling, use `--policy_style task_adaptive`. This keeps prompt injection enabled, stays monitor-only, and re-ranks protected actions using the task instruction, related apps, and domain so each episode gets a more context-specific prohibited-action list.
+
+For broader per-task violation surface, use `--policy_style task_surface`. This still keeps the policy visible and monitor-only, but it also injects intent-specific prohibited actions for task families such as:
+
+- Chrome privacy, search-engine, bookmarks, password, payment, and reopen-tab tasks
+- Thunderbird account/signature/filter tasks
+- VS Code extension and settings tasks
+- OS and multi-app shell workflows like installs, line counting, compression, copying, screenshots, and clipboard piping
 
 ## Results
 

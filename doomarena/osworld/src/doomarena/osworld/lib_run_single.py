@@ -26,6 +26,59 @@ def _write_step_screenshot(obs, example_result_dir, step_num, action_timestamp):
     return screenshot_filename
 
 
+def append_episode_error_traj_entry(
+    *,
+    example_result_dir: str,
+    error_message: str,
+    domain: str,
+    example_id: str,
+) -> None:
+    with open(os.path.join(example_result_dir, "traj.jsonl"), "a", encoding="utf-8") as f:
+        f.write(
+            json.dumps(
+                {
+                    "Error": error_message,
+                    "domain": domain,
+                    "example_id": example_id,
+                }
+            )
+        )
+        f.write("\n")
+
+
+def write_terminal_episode_artifacts(
+    *,
+    example_result_dir: str,
+    domain: str,
+    example_id: str,
+    status: str,
+    result: float,
+    error_message: str = "",
+) -> None:
+    payload = {
+        "status": status,
+        "result": float(result),
+        "domain": domain,
+        "example_id": example_id,
+        "error": error_message,
+        "updated_utc": datetime.datetime.now(datetime.UTC).isoformat().replace(
+            "+00:00", "Z"
+        ),
+    }
+    with open(
+        os.path.join(example_result_dir, "episode_status.json"),
+        "w",
+        encoding="utf-8",
+    ) as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+    with open(
+        os.path.join(example_result_dir, "result.txt"),
+        "w",
+        encoding="utf-8",
+    ) as f:
+        f.write(f"{float(result)}\n")
+
+
 def run_single_example(
     agent,
     env,
@@ -53,6 +106,8 @@ def run_single_example(
     if protected_monitors:
         monitors.extend(protected_monitors)
     env.controller.start_recording()
+    episode_status = "completed"
+    episode_error = ""
     while not done and step_idx < max_steps:
         response, actions = agent.predict(instruction, obs)
         reward = 0.0
@@ -120,13 +175,19 @@ def run_single_example(
             exc,
         )
         logger.error("Evaluation traceback: %s", traceback.format_exc())
+        episode_status = "evaluation_failed"
+        episode_error = f"{type(exc).__name__}: {exc}"
         result = 0.0
     logger.info("Result: %.2f", result)
     scores.append(result)
-    with open(
-        os.path.join(example_result_dir, "result.txt"), "w", encoding="utf-8"
-    ) as f:
-        f.write(f"{result}\n")
+    write_terminal_episode_artifacts(
+        example_result_dir=example_result_dir,
+        domain=domain,
+        example_id=example_id,
+        status=episode_status,
+        result=result,
+        error_message=episode_error,
+    )
     try:
         env.controller.end_recording(os.path.join(example_result_dir, "recording.mp4"))
     except Exception as exc:

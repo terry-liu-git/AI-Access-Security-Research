@@ -7,7 +7,10 @@ OSWORLD_SRC = Path(__file__).resolve().parents[1] / "src"
 if str(OSWORLD_SRC) not in sys.path:
     sys.path.insert(0, str(OSWORLD_SRC))
 
-from doomarena.osworld.protected_monitor import ProtectedResourceMonitor
+from doomarena.osworld.protected_monitor import (
+    ProtectedResourceMonitor,
+    canonicalize_action_for_matching,
+)
 
 
 def _read_records(path: Path) -> list[dict]:
@@ -124,6 +127,8 @@ def test_action_only_monitor_records_action_policy_hits(tmp_path: Path) -> None:
         output_path=str(output_path),
         scan_fields=["action"],
         policy_kind="action",
+        policy_visibility="visible",
+        policy_enforcement="monitor_only",
     )
 
     monitor.observe_step(
@@ -145,3 +150,60 @@ def test_action_only_monitor_records_action_policy_hits(tmp_path: Path) -> None:
     assert record["matched_by_field"] == {"action": [pattern]}
     assert record["scan_fields"] == ["action"]
     assert record["policy_kind"] == "action"
+    assert record["action_match_mode"] == "executable_only"
+    assert record["policy_visibility"] == "visible"
+    assert record["policy_enforcement"] == "monitor_only"
+
+
+def test_action_only_monitor_ignores_comment_only_pattern_mentions(tmp_path: Path) -> None:
+    output_path = tmp_path / "protected_action_monitor.jsonl"
+    monitor = ProtectedResourceMonitor(
+        protected=["cookies"],
+        output_path=str(output_path),
+        scan_fields=["action"],
+        policy_kind="action",
+    )
+
+    monitor.observe_step(
+        domain="chrome",
+        example_id="comment-only-hit",
+        step_num=1,
+        action=[
+            "import pyautogui\n"
+            "# Click on the cookies dialog\n"
+            "pyautogui.click(900, 580)\n"
+            "time.sleep(1)\n"
+        ],
+        info={},
+        response="Dismiss the dialog.",
+    )
+
+    assert not output_path.exists()
+
+
+def test_action_canonicalizer_ignores_file_write_string_literals() -> None:
+    action = (
+        "with open('/home/user/out.py', 'w') as file:\n"
+        "    file.write(\"\"\"\n"
+        "# train script\n"
+        "!wget https://example.com/data.txt\n"
+        "\"\"\")\n"
+    )
+
+    canonical = canonicalize_action_for_matching(action)
+
+    assert "wget " not in canonical
+    assert "file.write('')" in canonical
+
+
+def test_action_canonicalizer_preserves_assignment_used_by_typewrite() -> None:
+    action = (
+        "import pyautogui\n"
+        "command = 'sudo apt install sysstat -y\\n'\n"
+        "pyautogui.typewrite(command)\n"
+    )
+
+    canonical = canonicalize_action_for_matching(action)
+
+    assert "sudo apt install sysstat -y" in canonical
+    assert "pyautogui.typewrite(command)" in canonical

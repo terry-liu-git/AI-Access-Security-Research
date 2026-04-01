@@ -1,8 +1,11 @@
+import ast
+import io
 import json
 import os
 import re
 import threading
 import time
+import tokenize
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Pattern, Union
 
@@ -99,6 +102,168 @@ def _normalize_scan_fields(scan_fields: Optional[List[str]]) -> List[str]:
     return normalized or list(_DEFAULT_SCAN_FIELDS)
 
 
+def _iter_target_names(node: ast.AST) -> List[str]:
+    if isinstance(node, ast.Name):
+        return [node.id]
+    if isinstance(node, (ast.Tuple, ast.List)):
+        names: List[str] = []
+        for elt in node.elts:
+            names.extend(_iter_target_names(elt))
+        return names
+    return []
+
+
+def _collect_name_refs(node: ast.AST) -> List[str]:
+    return sorted(
+        {
+            child.id
+            for child in ast.walk(node)
+            if isinstance(child, ast.Name)
+        }
+    )
+
+
+def _is_pyautogui_call(node: ast.AST, *, attrs: set[str]) -> bool:
+    return (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "pyautogui"
+        and node.func.attr in attrs
+    )
+
+
+def _preserved_string_lines(source: str) -> set[int]:
+    fallback_lines = {
+        lineno
+        for lineno, line in enumerate(source.splitlines(), start=1)
+        if "pyautogui." in line
+    }
+
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return fallback_lines
+
+    preserve_lines = set(fallback_lines)
+    typed_arg_names: set[str] = set()
+
+    for node in ast.walk(tree):
+        if _is_pyautogui_call(
+            node,
+            attrs={"typewrite", "write", "press", "hotkey"},
+        ):
+            start = getattr(node, "lineno", None)
+            end = getattr(node, "end_lineno", start)
+            if start is not None:
+                preserve_lines.update(range(start, (end or start) + 1))
+            if node.args and _is_pyautogui_call(
+                node,
+                attrs={"typewrite", "write"},
+            ):
+                typed_arg_names.update(_collect_name_refs(node.args[0]))
+
+    if not typed_arg_names:
+        return preserve_lines
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            target_names = {
+                name
+                for target in node.targets
+                for name in _iter_target_names(target)
+            }
+        elif isinstance(node, ast.AnnAssign):
+            target_names = set(_iter_target_names(node.target))
+        else:
+            continue
+
+        if not target_names.intersection(typed_arg_names):
+            continue
+        start = getattr(node, "lineno", None)
+        end = getattr(node, "end_lineno", start)
+        if start is not None:
+            preserve_lines.update(range(start, (end or start) + 1))
+
+    return preserve_lines
+
+
+def _strip_python_comments_and_nonexecuted_literals(source: str) -> str:
+    preserve_lines = _preserved_string_lines(source)
+    try:
+        rewritten_tokens = []
+        for token in tokenize.generate_tokens(io.StringIO(source).readline):
+            if token.type == tokenize.COMMENT:
+                continue
+            if token.type == tokenize.STRING and token.start[0] not in preserve_lines:
+                rewritten_tokens.append(token._replace(string="''"))
+            else:
+                rewritten_tokens.append(token)
+        return tokenize.untokenize(rewritten_tokens)
+    except (IndentationError, SyntaxError, tokenize.TokenError):
+        sanitized = re.sub(
+            r"(?s)(\"\"\".*?\"\"\"|'''.*?''')",
+            "''",
+            source,
+        )
+        return "\n".join(
+            line
+            for line in sanitized.splitlines()
+            if not line.strip().startswith("#")
+        )
+
+
+def _looks_executable_action_line(line: str) -> bool:
+    stripped = line.strip()
+    if not stripped:
+        return False
+    if stripped in {"WAIT", "DONE", "FAIL"}:
+        return True
+    if stripped.startswith(("import ", "from ")):
+        return True
+    if stripped.startswith(
+        (
+            "if ",
+            "elif ",
+            "else:",
+            "for ",
+            "while ",
+            "try:",
+            "except",
+            "with ",
+        )
+    ):
+        return True
+    return any(ch in stripped for ch in ("(", ")", "=", "."))
+
+
+def _canonicalize_action_script(script: str) -> str:
+    stripped = script.strip()
+    if not stripped:
+        return ""
+    if stripped in {"WAIT", "DONE", "FAIL"}:
+        return stripped
+
+    sanitized = _strip_python_comments_and_nonexecuted_literals(stripped)
+    kept_lines = [
+        line.rstrip()
+        for line in sanitized.splitlines()
+        if _looks_executable_action_line(line)
+    ]
+    return "\n".join(kept_lines).strip()
+
+
+def canonicalize_action_for_matching(action: Any) -> str:
+    if isinstance(action, list):
+        parts = [canonicalize_action_for_matching(item) for item in action]
+        return "\n\n".join(part for part in parts if part).strip()
+    if isinstance(action, tuple):
+        return canonicalize_action_for_matching(list(action))
+    if isinstance(action, str):
+        return _canonicalize_action_script(action)
+    return _safe_to_text(action)
+
+
 @dataclass
 class ProtectedResourceMonitor:
     protected: List[str]
@@ -112,10 +277,17 @@ class ProtectedResourceMonitor:
     policy_name: str = ""
     policy_hypothesis: str = ""
     policy_non_protected_examples: List[str] = field(default_factory=list)
+    policy_prompt_injected: Optional[bool] = None
+    policy_visibility: str = ""
+    policy_enforcement: str = "monitor_only"
+    policy_task_tags: List[str] = field(default_factory=list)
+    policy_instruction_basis: str = ""
+    policy_style: str = ""
     scan_fields: List[str] = field(
         default_factory=lambda: list(_DEFAULT_SCAN_FIELDS)
     )
     policy_kind: str = "resource"
+    action_match_mode: str = ""
 
     _count: int = 0
     _hits: Dict[str, int] = field(default_factory=dict)
@@ -128,6 +300,15 @@ class ProtectedResourceMonitor:
     def __post_init__(self) -> None:
         self.scan_fields = _normalize_scan_fields(self.scan_fields)
         self.policy_kind = str(self.policy_kind or "resource")
+        self.action_match_mode = str(
+            self.action_match_mode
+            or ("executable_only" if self.policy_kind == "action" else "raw")
+        )
+        if self.action_match_mode not in {"raw", "executable_only"}:
+            raise ValueError(
+                "Unsupported action_match_mode: "
+                f"{self.action_match_mode}. Expected 'raw' or 'executable_only'."
+            )
         flags = 0 if self.case_sensitive else re.IGNORECASE
         regex_patterns = list(self.protected_regex)
         if self.use_regex:
@@ -246,12 +427,20 @@ class ProtectedResourceMonitor:
         ts = ts if ts is not None else time.time()
 
         blob: Dict[str, Any] = {}
+        field_match_bases: Dict[str, str] = {}
         if "action" in self.scan_fields:
-            blob["action"] = action
+            if self.policy_kind == "action" and self.action_match_mode == "executable_only":
+                blob["action"] = canonicalize_action_for_matching(action)
+                field_match_bases["action"] = "canonical_executable"
+            else:
+                blob["action"] = action
+                field_match_bases["action"] = "raw_text"
         if "info" in self.scan_fields:
             blob["info"] = info
+            field_match_bases["info"] = "raw_text"
         if response is not None and "response" in self.scan_fields:
             blob["response"] = response
+            field_match_bases["response"] = "raw_text"
         if (
             obs
             and isinstance(obs, dict)
@@ -259,6 +448,7 @@ class ProtectedResourceMonitor:
             and "a11y_tree" in obs
         ):
             blob["a11y_tree"] = obs.get("a11y_tree")
+            field_match_bases["a11y_tree"] = "raw_text"
         field_text = {
             key: _safe_to_text(val)
             for key, val in blob.items()
@@ -305,8 +495,16 @@ class ProtectedResourceMonitor:
                 "policy_literals": list(self.protected),
                 "policy_regex": list(self.protected_regex),
                 "policy_non_protected_examples": list(self.policy_non_protected_examples),
+                "policy_prompt_injected": self.policy_prompt_injected,
+                "policy_visibility": self.policy_visibility,
+                "policy_enforcement": self.policy_enforcement,
+                "policy_task_tags": list(self.policy_task_tags),
+                "policy_instruction_basis": self.policy_instruction_basis,
+                "policy_style": self.policy_style,
                 "scan_fields": list(self.scan_fields),
                 "policy_kind": self.policy_kind,
+                "action_match_mode": self.action_match_mode,
+                "field_match_bases": field_match_bases,
             }
 
             with open(self.output_path, "a", encoding="utf-8") as f:

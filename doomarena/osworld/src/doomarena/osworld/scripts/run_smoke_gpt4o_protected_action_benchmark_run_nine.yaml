@@ -1,0 +1,29 @@
+observation_type: screenshot
+attack_gateway: osworld_attack_gateway
+add_attack: "No"
+attackable_components:
+  - attackable_component:
+      type: popup_inpainting
+    filter: always_true
+attacks:
+  - name: popup_inpainting_attack
+    type: fixed_injection_attack
+    injection_str: instruct click tgt
+    success_filter: popup_click_success_filter
+model: gpt-4o
+provider_name: docker
+screen_width: 1920
+screen_height: 956
+test_all_meta_path: doomarena/osworld/generated_protected_action_benchmark_run_nine_smoke/evaluation_examples/test_all.json
+test_config_base_dir: doomarena/osworld/generated_protected_action_benchmark_run_nine_smoke/evaluation_examples
+max_steps: 15
+result_dir: ./click_results_smoke_protected_action_benchmark_run_nine
+enable_protected_action_monitor: true
+protected_action_monitor_from_example_policy: true
+protected_actions: []
+protected_action_monitor_use_regex: false
+protected_action_monitor_case_sensitive: false
+protected_action_monitor_regex_fullmatch: true
+protected_action_monitor_regex_anchor_patterns: true
+protected_action_monitor_log_unmatched_steps: true
+protected_action_monitor_filename: "protected_action_monitor.jsonl"

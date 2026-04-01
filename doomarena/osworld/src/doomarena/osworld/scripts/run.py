@@ -321,6 +321,12 @@ def _build_policy_monitor(
     policy_name = ""
     policy_hypothesis = ""
     policy_non_protected_examples = []
+    policy_prompt_injected = None
+    policy_visibility = ""
+    policy_enforcement = "monitor_only"
+    policy_task_tags = []
+    policy_instruction_basis = ""
+    policy_style = ""
 
     if config_args.get(from_example_policy_key) and example_policy:
         policy_literals = list(example_policy.get("protected_literals", []))
@@ -330,6 +336,20 @@ def _build_policy_monitor(
         policy_non_protected_examples = list(
             example_policy.get("non_protected_examples", [])
         )
+        if "prompt_injected" in example_policy:
+            policy_prompt_injected = bool(example_policy.get("prompt_injected"))
+        policy_visibility = str(example_policy.get("policy_visibility", "") or "")
+        if not policy_visibility and policy_prompt_injected is not None:
+            policy_visibility = (
+                "visible" if policy_prompt_injected else "hidden"
+            )
+        policy_enforcement = str(
+            example_policy.get("policy_enforcement", "monitor_only")
+            or "monitor_only"
+        )
+        policy_task_tags = list(example_policy.get("task_tags", []))
+        policy_instruction_basis = str(example_policy.get("instruction_basis", ""))
+        policy_style = str(example_policy.get("policy_style", ""))
     else:
         policy_literals = list(config_args.get(fallback_patterns_key, []))
         if bool(config_args.get(use_regex_key, False)):
@@ -356,8 +376,15 @@ def _build_policy_monitor(
         policy_name=policy_name,
         policy_hypothesis=policy_hypothesis,
         policy_non_protected_examples=policy_non_protected_examples,
+        policy_prompt_injected=policy_prompt_injected,
+        policy_visibility=policy_visibility,
+        policy_enforcement=policy_enforcement,
+        policy_task_tags=policy_task_tags,
+        policy_instruction_basis=policy_instruction_basis,
+        policy_style=policy_style,
         scan_fields=scan_fields,
         policy_kind=policy_kind,
+        action_match_mode="executable_only" if policy_kind == "action" else "raw",
     )
 
 
@@ -522,21 +549,33 @@ def test(config_args, test_all_meta: dict, save_results: bool = True) -> None:
                     f"Exception traceback: {traceback.format_exc()}"
                 )
 
-                env.controller.end_recording(
-                    os.path.join(example_result_dir, "recording.mp4")
-                )
-                with open(os.path.join(example_result_dir, "traj.jsonl"), "a") as f:
-                    f.write(
-                        json.dumps(
-                            {
-                                "Error": (
-                                    f"{type(e).__name__}: {e} "
-                                    f"in {domain}/{example_id}"
-                                )
-                            }
-                        )
+                error_message = f"{type(e).__name__}: {e} in {domain}/{example_id}"
+                try:
+                    env.controller.end_recording(
+                        os.path.join(example_result_dir, "recording.mp4")
                     )
-                    f.write("\n")
+                except Exception as end_exc:
+                    logger.error(
+                        "Failed to stop recording after crash in %s/%s: %s",
+                        domain,
+                        example_id,
+                        end_exc,
+                    )
+                lib_run_single.append_episode_error_traj_entry(
+                    example_result_dir=example_result_dir,
+                    error_message=error_message,
+                    domain=domain,
+                    example_id=example_id,
+                )
+                lib_run_single.write_terminal_episode_artifacts(
+                    example_result_dir=example_result_dir,
+                    domain=domain,
+                    example_id=example_id,
+                    status="crashed",
+                    result=0.0,
+                    error_message=error_message,
+                )
+                scores.append(0.0)
 
     env.close()
     logger.info(f"Total examples: {len(scores)}")
