@@ -190,3 +190,24 @@ cache/
 doomarena/osworld/src/doomarena/osworld/scripts/run_temp.py
 output.png
 notebooks/Taubench_attack_demo.ipynb
+
+# Local Codex state
+.codex
+.codex/
+
+# Local benchmark result trees
+click_results_full_protected_action_benchmark*/
+protected_resources_*/
+
+# Generated local protected-action benchmark datasets
+doomarena/osworld/generated_protected_action_benchmark*/
+
+# Obsolete hidden-policy run configs kept local-only
+doomarena/osworld/src/doomarena/osworld/scripts/run_full_gpt4o_protected_action_benchmark_run_two.yaml
+doomarena/osworld/src/doomarena/osworld/scripts/run_full_gpt4o_protected_action_benchmark_run_three.yaml
+doomarena/osworld/src/doomarena/osworld/scripts/run_smoke_gpt4o_protected_action_benchmark_run_two.yaml
+doomarena/osworld/src/doomarena/osworld/scripts/run_smoke_gpt4o_protected_action_benchmark_run_three.yaml
+
+# Local archives
+protected_resources_*.zip
+quick_result_summaries.zip
