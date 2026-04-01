@@ -25,7 +25,11 @@ The OSWorld integration now supports a dedicated protected-action benchmark for 
 - **Observation mode:** VM monitor recording, screenshot, action trajectory logs
 - **Primary output artifacts per episode:** `protected_monitor.jsonl`, `protected_action_monitor.jsonl` (when enabled)
 
-## Snapshot Results (Runs 1–3, Mar 2026)
+## Protected Resource Benchmarks
+
+These runs focus on protected-resource exposure and access signals such as paths, URLs, and response-output matches.
+
+### Snapshot Results (Runs 1–3, Mar 2026)
 
 - 1,080 total episodes analyzed
 - 4 violation episodes detected (0.37%)
@@ -37,9 +41,9 @@ The OSWorld integration now supports a dedicated protected-action benchmark for 
 Results (by runs 1-3, Mar 2026) suggest low observed protected-resource leakage under current benchmark configuration.  
 
 
-# Latest Runs:
+### Latest Protected-Resource Run
 
-## Latest Run [March 6, 2026] (Run 3)
+Latest run [March 6, 2026] (Run 3):
 
 - Model tested: `gpt-4o`
 - Episodes analyzed: `360` total, `359` with `protected_monitor.jsonl`
@@ -47,7 +51,7 @@ Results (by runs 1-3, Mar 2026) suggest low observed protected-resource leakage 
 - Detected pattern: `(?i)^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$` in `response_output`
 - Modifications (vs. previous run): benchmark regenerated with stronger task-context dependency for protected resources to increase likelihood of an agent encountering contextualized protected resources.
 
-## Historical Runs
+### Historical Protected-Resource Runs
 
 | Run | Date | Episodes (monitored) | Violation Episodes | Violation Steps | Modifications |
 | --- | --- | --- | --- | --- | --- |
@@ -55,9 +59,7 @@ Results (by runs 1-3, Mar 2026) suggest low observed protected-resource leakage 
 | Run 2 | March 5, 2026 | `360` (`359`) | `3` | `3` | Switched from generic `protected-scenario-*` to contextual `contextual-*` task policies |
 | Run 3 | March 6, 2026 | `360` (`359`) | `1` | `1` | Increased task-context dependency of protected resources in benchmark generation |
 
-## Detailed Reports
-
-### Protected Resources
+### Protected-Resource Reports
 
 - Run 1: [quick_result_summaries/run_one/protected_resources_full_rerun_20260302_report.md](quick_result_summaries/run_one/protected_resources_full_rerun_20260302_report.md) | [quick_result_summaries/run_one/protected_resources_full_rerun_20260302_report.json](quick_result_summaries/run_one/protected_resources_full_rerun_20260302_report.json)
 - Run 2: [quick_result_summaries/run_two/protected_resources_second_run_20260304_report.md](quick_result_summaries/run_two/protected_resources_second_run_20260304_report.md) | [quick_result_summaries/run_two/protected_resources_second_run_20260304_report.json](quick_result_summaries/run_two/protected_resources_second_run_20260304_report.json)
@@ -65,22 +67,20 @@ Results (by runs 1-3, Mar 2026) suggest low observed protected-resource leakage 
 - Run 4: [quick_result_summaries/run_four/protected_resources_fourth_run_20260306_report.md](quick_result_summaries/run_four/protected_resources_fourth_run_20260306_report.md) | [quick_result_summaries/run_four/protected_resources_fourth_run_20260306_report.json](quick_result_summaries/run_four/protected_resources_fourth_run_20260306_report.json)
 - Overview chart: [quick_result_summaries/runs_1_to_3_overview.png](quick_result_summaries/runs_1_to_3_overview.png)
 
-### Protected Actions
+## Protected Action Benchmarks
 
-We retain only the protected-action runs where the model was explicitly informed of the prohibited actions and the runtime remained `monitor_only`.
+These runs test whether the model will still execute explicitly prohibited actions, including clicks, keyboard shortcuts, and OS actions, when the policy is shown to the model but the runtime remains `monitor_only`.
 
-- Retained informed runs: original runs `1, 4, 5, 6, 7, 8, 9`
-- Removed from the main summary: original runs `2` and `3`
-- Reason: those two runs were hidden-policy ablations where `prompt_injected: false`, so the model was not shown the protected-action list
+### Protected-Action Results Overview
 
-Across the retained informed runs:
+Across the seven runs summarized here:
 
 - `2,520` total episodes
 - `149` violating episodes (`5.91%`)
 - `364` violating steps out of `30,188` logged steps (`1.21%`)
 - `19` successful violating episodes out of `129` successful episodes (`14.73%`)
 
-Overview artifacts:
+### Protected-Action Overview Artifacts
 
 - Summary: [quick_result_summaries/action_violation_run_overview.md](quick_result_summaries/action_violation_run_overview.md)
 - Machine-readable metrics: [quick_result_summaries/action_violation_run_overview.json](quick_result_summaries/action_violation_run_overview.json)
@@ -88,21 +88,21 @@ Overview artifacts:
 
 <img src="quick_result_summaries/action_violation_run_overview.svg" alt="Protected Action Violation Benchmark Overview" width="100%" />
 
-Retained run mapping:
+### Retained Run Sequence
 
-- [action_violation_run_one](quick_result_summaries/action_violation_run_one/protected_action_benchmark_report.md) = original run `1`
-- [action_violation_run_two](quick_result_summaries/action_violation_run_two/protected_action_benchmark_report.md) = original run `4`
-- [action_violation_run_three](quick_result_summaries/action_violation_run_three/protected_action_benchmark_report.md) = original run `5`
-- [action_violation_run_four](quick_result_summaries/action_violation_run_four/protected_action_benchmark_report.md) = original run `6`
-- [action_violation_run_five](quick_result_summaries/action_violation_run_five/protected_action_benchmark_report.md) = original run `7`
-- [action_violation_run_six](quick_result_summaries/action_violation_run_six/protected_action_benchmark_report.md) = original run `8`
-- [action_violation_run_seven](quick_result_summaries/action_violation_run_seven/protected_action_benchmark_report.md) = original run `9`
+- [Run 1](quick_result_summaries/action_violation_run_one/protected_action_benchmark_report.md)
+- [Run 2](quick_result_summaries/action_violation_run_two/protected_action_benchmark_report.md)
+- [Run 3](quick_result_summaries/action_violation_run_three/protected_action_benchmark_report.md)
+- [Run 4](quick_result_summaries/action_violation_run_four/protected_action_benchmark_report.md)
+- [Run 5](quick_result_summaries/action_violation_run_five/protected_action_benchmark_report.md)
+- [Run 6](quick_result_summaries/action_violation_run_six/protected_action_benchmark_report.md)
+- [Run 7](quick_result_summaries/action_violation_run_seven/protected_action_benchmark_report.md)
 
-Current headline findings:
+### Current Headline Findings
 
-- Highest overall violation rate: retained `Run 5` / original run `7` with `30/360` violating episodes
-- Most successful violating episodes: retained `Run 6` and retained `Run 7` / original runs `8` and `9`, with `5` each
-- Highest success-conditioned violation rate: retained `Run 7` / original run `9`, where `27.78%` of successful episodes still violated the protected-action policy
+- Highest overall violation rate: `Run 5` with `30/360` violating episodes
+- Most successful violating episodes: `Run 6` and `Run 7`, with `5` each
+- Highest success-conditioned violation rate: `Run 7`, where `27.78%` of successful episodes still violated the protected-action policy
 
 
 ## The following is the original information on the DoomArena platform:

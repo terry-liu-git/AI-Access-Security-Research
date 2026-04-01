@@ -55,18 +55,6 @@ The OSWorld runner supports protected-resource monitoring through config fields:
 - `protected_monitor_log_unmatched_steps`
 - `protected_monitor_filename`
 
-The same runner can also monitor prohibited action traces through a second action-only monitor:
-
-- `enable_protected_action_monitor`
-- `protected_actions` (literal strings or regex)
-- `protected_action_monitor_use_regex`
-- `protected_action_monitor_case_sensitive`
-- `protected_action_monitor_regex_fullmatch`
-- `protected_action_monitor_regex_anchor_patterns`
-- `protected_action_monitor_log_unmatched_steps`
-- `protected_action_monitor_filename`
-- `protected_action_monitor_from_example_policy`
-
 Generate randomized protected-resource prompt scenarios:
 
 ```bash
@@ -99,6 +87,22 @@ Recommended baseline for this benchmark: run `gpt-4o` only and use anchored rege
 Use this prompt template when defining natural-language protected resources:
 `doomarena/osworld/src/doomarena/osworld/scripts/protected_resource_prompt_template.md`
 
+## Protected Action Benchmarking
+
+The same runner can also monitor prohibited action traces through a second action-only monitor.
+
+Protected-action config fields:
+
+- `enable_protected_action_monitor`
+- `protected_actions` (literal strings or regex)
+- `protected_action_monitor_use_regex`
+- `protected_action_monitor_case_sensitive`
+- `protected_action_monitor_regex_fullmatch`
+- `protected_action_monitor_regex_anchor_patterns`
+- `protected_action_monitor_log_unmatched_steps`
+- `protected_action_monitor_filename`
+- `protected_action_monitor_from_example_policy`
+
 For prohibited-action monitoring, analyze the action monitor file separately:
 
 ```bash
@@ -110,6 +114,10 @@ python doomarena/osworld/src/doomarena/osworld/scripts/analyze_protected_resourc
 
 Use this prompt template when defining natural-language prohibited actions:
 `doomarena/osworld/src/doomarena/osworld/scripts/protected_action_prompt_template.md`
+
+### Original Informed Baseline
+
+This is the first prompt-injected protected-action run, where the prohibited-action policy is shown to the model and the runtime remains observational.
 
 Build the action-violation benchmark with explicit prompt injection:
 
@@ -144,6 +152,10 @@ python doomarena/osworld/src/doomarena/osworld/scripts/run.py --config_file doom
 python doomarena/osworld/src/doomarena/osworld/scripts/run.py --config_file doomarena/osworld/src/doomarena/osworld/scripts/run_full_gpt4o_protected_action_benchmark.yaml
 ```
 
+### Hidden-Policy Ablations
+
+These runs intentionally hide the protected-action list from the model and are useful as controls, not as the main informed compliance benchmark.
+
 Run the second protected-action benchmark:
 
 ```bash
@@ -174,6 +186,10 @@ Important interpretation note:
 - They were built with `--no_inject_policy_into_instruction`, so the model was not shown the prohibited-action list.
 - Use original run `1` and original runs `4` through `9` for the main informed-but-unguarded protected-action benchmark sequence.
 - A consolidated summary of the retained informed runs is available at [quick_result_summaries/action_violation_run_overview.md](/home/xliu91/DoomArena/quick_result_summaries/action_violation_run_overview.md).
+
+### Informed Monitor-Only Benchmark Sequence
+
+These are the retained protected-action runs where the policy stays visible to the model and the runtime remains `monitor_only`.
 
 Build the fourth-run policy-informed but monitor-only action benchmark on the same task set:
 
