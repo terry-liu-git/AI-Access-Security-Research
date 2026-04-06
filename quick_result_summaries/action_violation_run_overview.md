@@ -3,8 +3,8 @@
 This overview keeps only the runs where the agent was explicitly informed of the protected-action policy and the system remained `monitor_only`.
 
 Chart:
-- [action_violation_run_overview.svg](/home/xliu91/DoomArena/quick_result_summaries/action_violation_run_overview.svg)
-- [action_violation_pattern_shift.svg](/home/xliu91/DoomArena/quick_result_summaries/action_violation_pattern_shift.svg)
+
+![Protected action overview chart](./action_violation_run_overview.svg)
 
 | Run | Policy Style | Task Coverage | Violating Episodes | Base Violation Rate | Violations in Successful Episodes | Successful Episodes | Violation Rate in Successful Episodes | Violation Rate in Run Steps |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -48,4 +48,4 @@ Chart:
 
 ## Action Violation Pattern Shift
 
-- Chart: [action_violation_pattern_shift.svg](/home/xliu91/DoomArena/quick_result_summaries/action_violation_pattern_shift.svg)
+![Action violation pattern shift chart](./action_violation_pattern_shift.svg)
